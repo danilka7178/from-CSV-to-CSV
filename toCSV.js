@@ -1,12 +1,12 @@
-import fs from "fs";
-import * as path from 'path';
+import fs from 'fs';
 
+// Переменные
+const CSVFileName = 'tmp.csv'; //tmp-desktop.csv
+const pathToFiles = '../artr-mobile-app/app/i18n'; // ../desktop-wallet/src/i18n
 
 // Функции
-
 // Находим файлы, получаем пути
 const getFiles = function (dir, files_){
-
     files_ = files_ || [];
     let files = fs.readdirSync(dir);
     for (let i in files){
@@ -20,7 +20,8 @@ const getFiles = function (dir, files_){
     const rdyFiles = [];
     for (let f of files_) {
         let massive = f.split('/')
-        if(massive[massive.length - 1] !== "index.js" && massive[massive.length - 1] !== "package.json"){
+        const lastMassiveEl = massive[massive.length - 1];
+        if(lastMassiveEl !== 'index.js' && lastMassiveEl !== 'package.json'){
             rdyFiles.push(f)
         }
     }
@@ -33,11 +34,11 @@ const namesInPaths = (paths) => {
     const names = [];
     for (let p of paths) {
         let massive = p.split('/')
-        if (massive[massive.length-1] !== "index.js" && massive[massive.length-1] !== "package.json"){
-            names.push(massive[massive.length-1])
+        const lastMassiveEl = massive[massive.length - 1];
+        if (lastMassiveEl !== 'index.js' && lastMassiveEl !== 'package.json'){
+            names.push(lastMassiveEl)
         }
 }
-
     const rdyNames = []
     for (let n of names) {
         let massive = n.split('.')
@@ -56,34 +57,34 @@ const dynamicImport = async (paths) => {
 }
 
 //Подготавливаем массив к записи в CSV
-const prepareArr = async (arr, names) => {
+const prepareArrToCSVWrite = async (arr, names) => {
 
-    const preparedArr = [];
+    const preparedArrToCSVWrite = [];
     let iteration = 0;
-    let firstColumn = "";
+    let firstColumn = '';
 
     const doThingsWithObj = (ent) => {
-        if (typeof ent === "object"){
+        if (typeof ent === 'object'){
 
-            let thirdColumn = "";
+            let thirdColumn = '';
 
-            firstColumn = names[iteration] + ", ";
+            firstColumn = names[iteration] + '; ';
             iteration++;
-            let globPath = "";
-            let path = "";
+            let globPath = '';
+            let path = '';
 
             const findString =  ([key, value]) => {
-                path = globPath + "." + key + ", ";
+                path = globPath + '.' + key + '; ';
                 thirdColumn = value;
-                preparedArr.push(firstColumn + path + thirdColumn + "\n");
+                preparedArrToCSVWrite.push(firstColumn + path + thirdColumn + ';' + '\n');
             }
 
             const iterateObj =  (ent) => {
                 for (const [key, value] of Object.entries(ent)) {
-                    if (typeof value === "string") {
+                    if (typeof value === 'string') {
                         findString([key, value]);
                     }else{
-                        globPath += "." + key;
+                        globPath += '.' + key;
                         iterateObj(value);
                     }
                 }
@@ -92,27 +93,27 @@ const prepareArr = async (arr, names) => {
             //Запускаем подготовку объектов для записи в массив
             iterateObj(ent);
         }else{
-            console.log("Такого не должно быть")
+            console.log('Такого не должно быть')
         }
     }
 
-    arr.map(obj => doThingsWithObj(obj));
-    return preparedArr;
+    arr.forEach(obj => doThingsWithObj(obj));
+    return preparedArrToCSVWrite;
 }
 
 
 // Создаем CSV файл.
 const createCSVFile = async () => {
-  const paths = await getFiles('../artr-mobile-app/app/i18n');
+  const paths = await getFiles(pathToFiles);
   const names = await namesInPaths(paths);
   const arr = await dynamicImport(paths);
-  const preparedArr = await prepareArr(arr, names);
+  const preparedArrToCSVWrite = await prepareArrToCSVWrite(arr, names);
 
-    fs.writeFile('./tmp.csv', preparedArr.join(""), function (err) {
+    fs.writeFile(`./${CSVFileName}`, preparedArrToCSVWrite.join(''), function (err) {
         if (err) {
             console.log('Some error occured - file either not saved or corrupted file saved.');
         } else{
-            console.log("Выполнение скрипта успешно завершено, чекай папку");
+            console.log('Выполнение скрипта успешно завершено, чекай папку');
         }
     });
 };
