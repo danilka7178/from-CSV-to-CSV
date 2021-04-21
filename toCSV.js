@@ -1,82 +1,80 @@
 import fs from 'fs';
 
-// Переменные
-const CSVFileName = 'tmp.csv'; //tmp-desktop.csv
-const pathToFiles = '../artr-mobile-app/app/i18n'; // ../desktop-wallet/src/i18n
+// Константы
+const CSV_FILE_NAME = 'tmp.csv'; //tmp-desktop.csv
+const PATH_TO_FILES = '../artr-mobile-app/app/i18n'; // ../desktop-wallet/src/i18n
 
 // Функции
 // Находим файлы, получаем пути
-const getFiles = function (dir, files_){
+const getPathsToFiles = function (dir, files_){
     files_ = files_ || [];
     let files = fs.readdirSync(dir);
-    for (let i in files){
-        let name = dir + '/' + files[i];
+    for (let file in files){
+        let name = dir + '/' + files[file];
         if (fs.statSync(name).isDirectory()){
-            getFiles(name, files_);
+            getPathsToFiles(name, files_);
         } else {
             files_.push(name);
         }
     }
-    const rdyFiles = [];
-    for (let f of files_) {
-        let massive = f.split('/')
-        const lastMassiveEl = massive[massive.length - 1];
+    const pathsToFiles = [];
+    for (let file of files_) {
+        const lastMassiveEl = file.split('/')[file.split('/').length - 1];
         if(lastMassiveEl !== 'index.js' && lastMassiveEl !== 'package.json'){
-            rdyFiles.push(f)
+            pathsToFiles.push(file)
         }
     }
-    return rdyFiles;
+    return pathsToFiles;
 };
 
 
 // Получаем имена файлов из путей
-const namesInPaths = (paths) => {
-    const names = [];
-    for (let p of paths) {
-        let massive = p.split('/')
-        const lastMassiveEl = massive[massive.length - 1];
+const getNamesInPaths = (paths) => {
+    const filesNames = [];
+    for (let path of paths) {
+        const lastMassiveEl = path.split('/')[path.split('/').length - 1];
         if (lastMassiveEl !== 'index.js' && lastMassiveEl !== 'package.json'){
-            names.push(lastMassiveEl)
+            filesNames.push(lastMassiveEl)
         }
 }
-    const rdyNames = []
-    for (let n of names) {
-        let massive = n.split('.')
-        rdyNames.push(massive[0])
+    const namesOfPaths = []
+    for (let name of filesNames) {
+        let massiveWords = name.split('.')
+        namesOfPaths.push(massiveWords[0])
     }
-    return rdyNames
+    return namesOfPaths
 }
 
 //Динамически импортируем файлы используя полученные пути getFiles()
 const dynamicImport = async (paths) => {
-    const someArr = [];
+    const importFiles = [];
     for (let path of paths){
-        await import(path).then(obj => someArr.push(obj.default))
+        await import(path).then(obj => importFiles.push(obj.default))
     }
-    return someArr;
+    return importFiles;
 }
 
 //Подготавливаем массив к записи в CSV
-const prepareArrToCSVWrite = async (arr, names) => {
+const prepareArrayToCSVWrite = async (arr, names) => {
 
-    const preparedArrToCSVWrite = [];
+    const preparedArrayToCSVWrite = [];
     let iteration = 0;
     let firstColumn = '';
 
-    const doThingsWithObj = (ent) => {
+    const prepareObjtoCSV = (ent) => {
         if (typeof ent === 'object'){
 
             let thirdColumn = '';
 
-            firstColumn = names[iteration] + '; ';
+            firstColumn = `${names[iteration]}; `;
             iteration++;
             let globPath = '';
             let path = '';
 
             const findString =  ([key, value]) => {
-                path = globPath + '.' + key + '; ';
+                path = `${globPath}.${key}; `;
                 thirdColumn = value;
-                preparedArrToCSVWrite.push(firstColumn + path + thirdColumn + ';' + '\n');
+                preparedArrayToCSVWrite.push(`${firstColumn}${path}${thirdColumn}; \n`);
             }
 
             const iterateObj =  (ent) => {
@@ -89,31 +87,30 @@ const prepareArrToCSVWrite = async (arr, names) => {
                     }
                 }
             }
-
             //Запускаем подготовку объектов для записи в массив
             iterateObj(ent);
         }else{
-            console.log('Такого не должно быть')
+            console.log('Ошибка, на входе должнен быть объект')
         }
     }
 
-    arr.forEach(obj => doThingsWithObj(obj));
-    return preparedArrToCSVWrite;
+    arr.forEach(obj => prepareObjtoCSV(obj));
+    return preparedArrayToCSVWrite;
 }
 
 
 // Создаем CSV файл.
 const createCSVFile = async () => {
-  const paths = await getFiles(pathToFiles);
-  const names = await namesInPaths(paths);
+  const paths = await getPathsToFiles(PATH_TO_FILES);
+  const names = await getNamesInPaths(paths);
   const arr = await dynamicImport(paths);
-  const preparedArrToCSVWrite = await prepareArrToCSVWrite(arr, names);
+  const preparedArrayToCSVWrite = await prepareArrayToCSVWrite(arr, names);
 
-    fs.writeFile(`./${CSVFileName}`, preparedArrToCSVWrite.join(''), function (err) {
+    fs.writeFile(`./${CSV_FILE_NAME}`, preparedArrayToCSVWrite.join(''), function (err) {
         if (err) {
-            console.log('Some error occured - file either not saved or corrupted file saved.');
+            console.log('Ошибка выполнения записи в файл');
         } else{
-            console.log('Выполнение скрипта успешно завершено, чекай папку');
+            console.log('Выполнение успешно завершено, чекай папку со скриптом');
         }
     });
 };
