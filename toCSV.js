@@ -61,40 +61,38 @@ const prepareArrayToCSVWrite = async (arr, names) => {
     let iteration = 0;
     let firstColumn = '';
 
-    const prepareObjtoCSV = (ent) => {
+    const prepareObjToCSV = (ent) => {
         if (typeof ent === 'object'){
 
             let thirdColumn = '';
-
             firstColumn = `${names[iteration]}; `;
             iteration++;
-            let globPath = '';
-            let path = '';
 
-            const findString =  ([key, value]) => {
-                path = `${globPath}.${key}; `;
-                thirdColumn = value;
-                preparedArrayToCSVWrite.push(`${firstColumn}${path}${thirdColumn}; \n`);
+            const findString =  ([key, value], globPath) => {
+                let path = `${globPath}.${key}; `;
+                thirdColumn = `\"${value}\"`;
+                preparedArrayToCSVWrite.push(`${firstColumn}${path}${thirdColumn} \n`);
             }
 
-            const iterateObj =  (ent) => {
+            const iterateObj = (ent, globPath) => {
                 for (const [key, value] of Object.entries(ent)) {
                     if (typeof value === 'string') {
-                        findString([key, value]);
+                        findString([key, value], globPath);
                     }else{
-                        globPath += '.' + key;
-                        iterateObj(value);
+                        globPath+= `.${key}`;
+                        iterateObj(value, globPath);
+                        globPath = '';
                     }
                 }
             }
             //Запускаем подготовку объектов для записи в массив
-            iterateObj(ent);
+            iterateObj(ent, '');
         }else{
             console.log('Ошибка, на входе должнен быть объект')
         }
     }
 
-    arr.forEach(obj => prepareObjtoCSV(obj));
+    arr.forEach(obj => prepareObjToCSV(obj));
     return preparedArrayToCSVWrite;
 }
 
